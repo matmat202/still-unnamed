@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Still Unnamed · the human genes known only by a placeholder</title>
+<meta name="description" content="How many human protein-coding genes were known only by a placeholder symbol (C1orf, FAM, KIAA) each year since 1986, rebuilt from the HGNC gene-name database and checked against HGNC's own published counts.">
+<meta name="theme-color" content="#2a78d6">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://matmat202.github.io/still-unnamed/">
+<meta property="og:title" content="Still Unnamed">
+<meta property="og:description" content="How many human protein-coding genes are still known only by a placeholder symbol (C1orf, FAM, KIAA), year by year since 1986, rebuilt from HGNC.">
+<meta property="og:image" content="https://matmat202.github.io/still-unnamed/icons/card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<style>
+:root{color-scheme:light;--ground:#f8f8fa;--card:#fff;--ink:#1c1b22;--ink-2:#55535f;--ink-3:#686673;
+  --line:#e2e1e8;--grid:#ecebf0;--accent:#1f63b5;
+  --s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;
+  --f-ui:system-ui,-apple-system,"Segoe UI",sans-serif;--f-mono:ui-monospace,SFMono-Regular,Menlo,monospace}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;--ground:#141318;--card:#1e1d24;--ink:#ecebf2;
+  --ink-2:#b1afbd;--ink-3:#9d9baa;--line:#33313c;--grid:#2a2932;--accent:#7fb0f0;
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.45}
+main{max-width:900px;margin:0 auto;padding:16px}
+h1{font-size:24px;margin:4px 0 2px}
+h2{font-size:17px;margin:0 0 6px}
+.sub{color:var(--ink-2);font-size:13px;margin:0 0 14px}
+a{color:var(--accent)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin:0 0 14px}
+.hero{display:flex;gap:18px;flex-wrap:wrap;align-items:baseline}
+.hero b{font-size:44px;line-height:1;font-variant-numeric:tabular-nums}
+.hero span{color:var(--ink-2);max-width:34em}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--ink-2);margin:2px 0 6px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.legend .anc{width:10px;height:10px;border-radius:50%;background:var(--card);border:2px solid var(--ink)}
+.chart{position:relative}
+svg{display:block;width:100%;height:auto;overflow:visible}
+svg text{fill:var(--ink-3);font-size:11px;font-family:var(--f-ui)}
+svg .lab{fill:var(--ink-2);font-size:12px;font-weight:600}
+.tip{position:absolute;pointer-events:none;background:var(--card);border:1px solid var(--line);border-radius:8px;
+  padding:6px 9px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.15);white-space:nowrap;display:none}
+.tip b{font-variant-numeric:tabular-nums}
+details summary{cursor:pointer;color:var(--accent);font-size:13px;margin-top:6px}
+table{border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;width:100%}
+th,td{text-align:right;padding:3px 8px;border-bottom:1px solid var(--grid)}
+th:first-child,td:first-child{text-align:left}
+form{display:flex;gap:8px}
+input{flex:1;min-width:0;font:inherit;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+label.v{position:absolute;left:-9999px}
+.gene{margin-top:10px}
+.gene .sym{font-family:var(--f-mono);font-weight:700}
+.hist{list-style:none;padding:0;margin:6px 0 0}
+.hist li{padding:2px 0;color:var(--ink-2)}
+.hist code{font-family:var(--f-mono);color:var(--ink)}
+ul.plain{list-style:none;padding:0;margin:0}
+ul.plain li{padding:4px 0;border-bottom:1px solid var(--grid)}
+ul.plain code{font-family:var(--f-mono)}
+.muted{color:var(--ink-3);font-size:12px}
+footer{color:var(--ink-3);font-size:12px;margin:18px 0 30px}
+</style>
+</head>
+<body>
+<main>
+<h1>Still Unnamed</h1>
+<p class="sub">Every human gene gets an official symbol from HGNC. When nobody knows what a gene does, it gets a placeholder:
+<code>C1orf112</code> (“chromosome 1 open reading frame 112”), <code>FAM53B</code> (“family with sequence similarity”) or
+<code>KIAA0100</code> (a lab clone number). It gets a real name once someone works out what it does.</p>
+
+<section class="card hero" aria-live="polite">
+  <b id="still">–</b>
+  <span id="still-s">human protein-coding genes are still known only by a placeholder.</span>
+</section>
+
+<section class="card">
+  <h2>Placeholders over time</h2>
+  <div class="legend" id="legend"></div>
+  <div class="chart" id="chart"><div class="tip" id="tip"></div></div>
+  <p class="muted" id="anchor-note"></p>
+  <details><summary>Show as a table</summary><div id="table"></div></details>
+</section>
+
+<section class="card">
+  <h2>Look up a gene</h2>
+  <form id="f" autocomplete="off"><label class="v" for="q">Gene symbol</label>
+    <input id="q" placeholder="e.g. C1orf112" spellcheck="false" autocapitalize="characters"></form>
+  <div class="gene" id="gene"></div>
+</section>
+
+<section class="card">
+  <h2>Named most recently</h2>
+  <ul class="plain" id="recent"></ul>
+</section>
+
+<section class="card">
+  <h2>The genes Excel turned into dates</h2>
+  <p class="sub" id="excel-s"></p>
+  <ul class="plain" id="excel"></ul>
+</section>
+
+<footer>Data: <a href="https://www.genenames.org/">HGNC</a> complete set, as of <span id="asof"></span>.
+How it is rebuilt: HGNC dates only each gene's <em>last</em> rename, so a gene counts as a placeholder in a past year if its
+symbol then, or a symbol it had before its last rename, has a placeholder root. Genes HGNC later withdrew or merged are not in the file,
+so the early years undercount.</footer>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
