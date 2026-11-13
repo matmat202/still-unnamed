@@ -24,6 +24,24 @@ function lookup(genes, q) {
     || null;
 }
 
+// Natural order, so C1orf2 sorts before C1orf10.
+const natural = (a, b) => a.localeCompare(b, "en", { numeric: true, sensitivity: "base" });
+
+// Genes other than `skip` with a current or previous symbol starting with q, as
+// [gene, the symbol that matched], in natural order of that symbol. Typing "FAM72"
+// is a partial symbol, not a miss: it finds FAM72A-D, since renamed RUMY1-4.
+function prefixed(genes, q, skip) {
+  q = q.trim().toUpperCase();
+  if (!q) return [];
+  const out = [];
+  for (const g of genes) {
+    if (g === skip) continue;
+    const hit = [g.s, ...g.p].find(s => s.toUpperCase().startsWith(q));
+    if (hit) out.push([g, hit]);
+  }
+  return out.sort((a, b) => natural(a[1], b[1]));
+}
+
 // One gene's story as lines of text, oldest first.
 function story(g) {
   const out = [`approved ${g.a || "on an unknown date"}${g.p.length ? ` as ${g.p.join(", then ")}` : ` as ${g.s}`}`];
@@ -113,6 +131,14 @@ function draw(site) {
 
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 
+const HITS = 12;
+function hitsHTML(hits, cap) {
+  return `<ul class="hits">${hits.slice(0, cap).map(([g]) => `<li><button type="button" data-s="${esc(g.s)}">`
+    + `<code>${esc([...g.p, g.s].join(" → "))}</code>${g.still ? ' <span class="muted">still a placeholder</span>' : ""}`
+    + `</button></li>`).join("")}</ul>`
+    + (hits.length > cap ? `<p class="muted">and ${fmt(hits.length - cap)} more: keep typing.</p>` : "");
+}
+
 function geneHTML(g) {
   const link = `https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/${esc(g.id)}`;
   return `<div><span class="sym">${esc(g.s)}</span> · ${esc(g.n)} · ${esc(g.loc)} · <a href="${link}">HGNC</a></div>`
@@ -138,13 +164,20 @@ async function main() {
   const q = document.getElementById("q"), out = document.getElementById("gene");
   const run = async () => {
     genes = genes || await (await fetch("data/genes.json")).json();
-    const g = lookup(genes, q.value);
-    out.innerHTML = !q.value.trim() ? "" : g ? geneHTML(g)
-      : `<span class="muted">${esc(q.value.trim().toUpperCase())} was never a placeholder-named protein-coding gene.</span>`;
+    const t = q.value.trim(), g = lookup(genes, t), hits = prefixed(genes, t, g);
+    const T = esc(t.toUpperCase());
+    out.innerHTML = !t ? "" : g ? geneHTML(g)
+        + (hits.length ? `<p class="muted">Also starting with ${T}:</p>` + hitsHTML(hits, 6) : "")
+      : hits.length ? `<p class="muted">${fmt(hits.length)} gene${hits.length > 1 ? "s" : ""} start${hits.length > 1 ? "" : "s"} with ${T}:</p>` + hitsHTML(hits, HITS)
+      : `<span class="muted">${T} was never a placeholder-named protein-coding gene.</span>`;
   };
+  out.addEventListener("click", e => {
+    const b = e.target.closest("button[data-s]");
+    if (b) { q.value = b.dataset.s; run(); }
+  });
   document.getElementById("f").addEventListener("submit", e => { e.preventDefault(); run(); });
   q.addEventListener("input", () => { if (q.value.trim().length >= 3) run(); else out.innerHTML = ""; });
 }
 
-if (typeof module !== "undefined") module.exports = { stack, lookup, story, ROOTS };
+if (typeof module !== "undefined") module.exports = { stack, lookup, prefixed, story, ROOTS };
 else main();
