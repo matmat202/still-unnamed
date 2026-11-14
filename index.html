@@ -63,6 +63,16 @@ label.v{position:absolute;left:-9999px}
 .hist{list-style:none;padding:0;margin:6px 0 0}
 .hist li{padding:2px 0;color:var(--ink-2)}
 .hist code{font-family:var(--f-mono);color:var(--ink)}
+.chroms{display:grid;grid-template-columns:1fr;column-gap:20px}
+@media (min-width:640px){.chroms{grid-template-columns:1fr 1fr;grid-template-rows:repeat(12,auto);grid-auto-flow:column}}
+.chr{display:flex;align-items:center;gap:8px;width:100%;min-height:32px;font:inherit;font-size:13px;color:var(--ink);
+  background:none;border:0;border-bottom:1px solid var(--grid);padding:4px 2px;cursor:pointer;text-align:left}
+.chr[aria-expanded=true]{background:var(--grid)}
+.chr .cn{width:3.2em;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.chr .bar{flex:1;display:flex;height:12px}
+.chr .bar i{display:block;height:100%}
+.chr .bar i+i{border-left:1px solid var(--card)}
+.chr b{width:2.2em;text-align:right;font-variant-numeric:tabular-nums}
 ul.plain{list-style:none;padding:0;margin:0}
 ul.plain li{padding:4px 0;border-bottom:1px solid var(--grid)}
 ul.plain code{font-family:var(--f-mono)}
@@ -95,6 +105,13 @@ footer{color:var(--ink-3);font-size:12px;margin:18px 0 30px}
   <form id="f" autocomplete="off"><label class="v" for="q">Gene symbol</label>
     <input id="q" placeholder="e.g. C1orf112" spellcheck="false" autocapitalize="characters"></form>
   <div class="gene" id="gene"></div>
+</section>
+
+<section class="card">
+  <h2>Where the unnamed genes are</h2>
+  <p class="sub">Still-placeholder genes on each chromosome, coloured as in the chart. Tap one to list them.</p>
+  <div class="chroms" id="chroms"></div>
+  <div class="gene" id="chrom-list"></div>
 </section>
 
 <section class="card">

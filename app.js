@@ -42,6 +42,30 @@ function prefixed(genes, q, skip) {
   return out.sort((a, b) => natural(a[1], b[1]));
 }
 
+// The chromosome a cytogenetic location names ("11q14.1" -> "11", "Xp22.33" -> "X"),
+// or null for "mitochondria", "not on reference assembly" and the like.
+const chromOf = loc => (/^(\d{1,2}|X|Y)(?=[pq]|$|\s|cen)/.exec(loc || "") || [])[1] || null;
+const CHROMS = [...Array.from({ length: 22 }, (_, i) => String(i + 1)), "X", "Y"];
+
+// Still-placeholder genes per chromosome, 1-22, X, Y in order (zeros kept: Y has none,
+// and saying so is the answer), each split by root and sorted naturally; then any
+// still-unnamed gene with no chromosome, so the rows always add up to the hero number.
+// g.r is the root build.py gave the current symbol, so the split never re-derives it.
+function byChrom(genes) {
+  const rows = new Map(CHROMS.map(c => [c, { chr: c, genes: [] }]));
+  for (const g of genes) {
+    if (!g.still) continue;
+    const c = chromOf(g.loc) || "other";
+    if (!rows.has(c)) rows.set(c, { chr: c, genes: [] });
+    rows.get(c).genes.push(g);
+  }
+  return [...rows.values()].filter(r => r.chr !== "other" || r.genes.length).map(r => {
+    r.genes.sort((a, b) => natural(a.s, b.s));
+    for (const k of ROOTS.map(q => q.key)) r[k] = r.genes.filter(g => g.r === k).length;
+    return r;
+  });
+}
+
 // One gene's story as lines of text, oldest first.
 function story(g) {
   const out = [`approved ${g.a || "on an unknown date"}${g.p.length ? ` as ${g.p.join(", then ")}` : ` as ${g.s}`}`];
@@ -132,11 +156,22 @@ function draw(site) {
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 
 const HITS = 12;
-function hitsHTML(hits, cap) {
+// `where`: in a list that is all placeholders on one chromosome, say the band instead
+function hitsHTML(hits, cap, where) {
   return `<ul class="hits">${hits.slice(0, cap).map(([g]) => `<li><button type="button" data-s="${esc(g.s)}">`
-    + `<code>${esc([...g.p, g.s].join(" → "))}</code>${g.still ? ' <span class="muted">still a placeholder</span>' : ""}`
+    + `<code>${esc([...g.p, g.s].join(" → "))}</code>`
+    + (where ? ` <span class="muted">${esc(g.loc)}</span>` : g.still ? ' <span class="muted">still a placeholder</span>' : "")
     + `</button></li>`).join("")}</ul>`
     + (hits.length > cap ? `<p class="muted">and ${fmt(hits.length - cap)} more: keep typing.</p>` : "");
+}
+
+function chromHTML(rows) {
+  const max = Math.max(1, ...rows.map(r => r.genes.length));
+  return rows.map(r => `<button type="button" class="chr" data-chr="${esc(r.chr)}" aria-expanded="false"`
+    + ` aria-label="Chromosome ${esc(r.chr)}: ${r.genes.length} still unnamed">`
+    + `<span class="cn">${r.chr === "other" ? "other" : esc(r.chr)}</span><span class="bar">`
+    + ROOTS.map(q => r[q.key] ? `<i style="width:${(r[q.key] / max * 100).toFixed(1)}%;background:${q.color}"></i>` : "").join("")
+    + `</span><b>${fmt(r.genes.length)}</b></button>`).join("");
 }
 
 function geneHTML(g) {
@@ -161,9 +196,10 @@ async function main() {
     `<li><code>${esc(g.p.join(", "))}</code> → <code><b>${esc(g.s)}</b></code> <span class="muted">${esc(g.c)}</span></li>`).join("");
 
   let genes = null;
+  const load = async () => genes = genes || await (await fetch("data/genes.json")).json();
   const q = document.getElementById("q"), out = document.getElementById("gene");
   const run = async () => {
-    genes = genes || await (await fetch("data/genes.json")).json();
+    await load();
     const t = q.value.trim(), g = lookup(genes, t), hits = prefixed(genes, t, g);
     const T = esc(t.toUpperCase());
     out.innerHTML = !t ? "" : g ? geneHTML(g)
@@ -175,9 +211,32 @@ async function main() {
     const b = e.target.closest("button[data-s]");
     if (b) { q.value = b.dataset.s; run(); }
   });
+  // where the still-unnamed genes are: one row per chromosome; tap one to list its genes,
+  // tap a gene to open its history in the lookup above
+  const rows = byChrom(await load()), chr = document.getElementById("chroms"), list = document.getElementById("chrom-list");
+  chr.innerHTML = chromHTML(rows);
+  chr.addEventListener("click", e => {
+    const b = e.target.closest("button[data-chr]");
+    if (!b) return;
+    const open = b.getAttribute("aria-expanded") !== "true";
+    chr.querySelectorAll("button[data-chr]").forEach(x => x.setAttribute("aria-expanded", "false"));
+    const r = rows.find(x => x.chr === b.dataset.chr);
+    if (!open || !r.genes.length) {
+      list.innerHTML = open ? `<p class="muted">No gene on chromosome ${esc(r.chr)} is still a placeholder.</p>` : "";
+      return;
+    }
+    b.setAttribute("aria-expanded", "true");
+    list.innerHTML = `<p class="muted">Still unnamed on chromosome ${esc(r.chr)}: ${fmt(r.genes.length)}</p>`
+      + hitsHTML(r.genes.map(g => [g, g.s]), Infinity, true);
+    list.scrollIntoView({ block: "nearest" });
+  });
+  list.addEventListener("click", e => {
+    const b = e.target.closest("button[data-s]");
+    if (b) { q.value = b.dataset.s; run(); q.scrollIntoView({ block: "center" }); }
+  });
   document.getElementById("f").addEventListener("submit", e => { e.preventDefault(); run(); });
   q.addEventListener("input", () => { if (q.value.trim().length >= 3) run(); else out.innerHTML = ""; });
 }
 
-if (typeof module !== "undefined") module.exports = { stack, lookup, prefixed, story, ROOTS };
+if (typeof module !== "undefined") module.exports = { stack, lookup, prefixed, story, chromOf, byChrom, ROOTS };
 else main();
