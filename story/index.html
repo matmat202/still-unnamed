@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The placeholders stopped coming · Still Unnamed, a story</title>
+<meta name="description" content="A story from Still Unnamed: 341 of the 385 human genes still known only by a placeholder got it before 2010, and only 73 placeholders have been given out since. Renaming peaked in 2012, when 23% of the placeholders on the books got a real name. A gene that has held its placeholder for 15 years or more is still named at 5.5% a year, half the rate of one held 6-10 years.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="plot" aria-hidden="true"></div>
+<p id="err" role="alert"></p>
+<main>
+
+<section class="step" data-step="assigned"><div>
+  <p class="kicker">Still Unnamed · a story</p>
+  <h1>The placeholders stopped coming</h1>
+  <p><a href="../">Still Unnamed</a> counts the human genes known only by a placeholder,
+  like <code>C1orf112</code> or <code>FAM53B</code>. <b data-fact="still"></b> are left. Why
+  those?</p>
+  <p>Not because they are new. <b data-fact="still_before"></b> of the
+  <b data-fact="still"></b> got their placeholder before <b data-fact="from"></b>; the
+  median one in <b data-fact="still_median_assigned"></b>. Placeholders were handed out by
+  the hundred a year while the genome was being read, and then almost stopped: only
+  <b data-fact="assigned_since"></b> have been given out since <b data-fact="from"></b>.</p>
+  <p class="small">Scroll ↓</p>
+</div></section>
+
+<section class="step" data-step="years"><div>
+  <p class="kicker">Chapter 1 · Year by year</p>
+  <h2>2012 was the big year</h2>
+  <p>Each bar is one year’s renames as a share of the placeholders on the books on
+  1 January. In <b data-fact="busiest"></b>, <b data-fact="busiest_n"></b> got a real name,
+  <b data-fact="busiest_rate"></b> of the pool, the red bar, and they were spread over the
+  year, not one batch.</p>
+  <p>The black bars are the slowest years of the whole record: <b data-fact="slow1"></b>
+  renamed <b data-fact="slow1_rate"></b> of what was left and <b data-fact="slow2"></b>
+  <b data-fact="slow2_rate"></b>.</p>
+</div></section>
+
+<section class="step" data-step="ages"><div>
+  <p class="kicker">Chapter 2 · Years held</p>
+  <h2>Slower, not stuck</h2>
+  <p>So are the last ones the hard ones? Compare genes by how long they had held their
+  placeholder, counting only time since <b data-fact="from"></b>, so old and new are judged
+  in the same years.</p>
+  <p>A new placeholder is named slowly, <b data-fact="h_new"></b> a year in its first three
+  years. The rate peaks at <b data-fact="peak"></b>, <b data-fact="h_max"></b> a year, and
+  falls after: a gene that has waited 15 years or more is named at
+  <b data-fact="h_old"></b> a year, half the peak. Part of that is the calendar, since most
+  of those years fall late, when everything was named less. <span class="w">But not all of
+  it</span>: from <b data-fact="recent_from"></b> alone (red), genes held 15 years or more
+  were named at <b data-fact="r_old"></b> a year, against <b data-fact="r_prev"></b> for
+  those held 10 to 15.</p>
+</div></section>
+
+<section class="step" data-step="assigned"><div>
+  <p class="kicker">Epilogue · Reading Still Unnamed</p>
+  <h2>Look one up</h2>
+  <p>On <a href="../">Still Unnamed</a>, type a symbol into the lookup and see when it was
+  given and when, if ever, it was renamed. The recent renames there are mostly genes from
+  the 2000s, finally named.</p>
+  <p class="small">Data: the HGNC complete set as Still Unnamed ships it, as of
+  <b data-fact="asof"></b>. A gene’s year is the year HGNC approved it. HGNC dates only a
+  gene’s <em>last</em> rename, so the two chapters use only the
+  <b data-fact="clean"></b> genes whose every earlier symbol was a placeholder, for which
+  that date is the day the placeholder went; the <b data-fact="left_out"></b> with a real
+  name somewhere in their past (<code>ABRAXAS1</code> was <code>CCDC98</code> and then
+  <code>FAM175A</code>) are left out of them. Genes HGNC withdrew or merged are not in the
+  file at all. This counts when genes were named, not why. The program is
+  <a href="https://github.com/matmat202/still-unnamed/blob/main/story/build_story.py">in the repository</a>.</p>
+</div></section>
+
+</main>
+<script type="module" src="story.js"></script>
+</body>
+</html>
