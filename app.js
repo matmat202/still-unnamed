@@ -66,6 +66,13 @@ function byChrom(genes) {
   });
 }
 
+// The symbol a page URL asks for: "#C12orf54" -> "C12orf54", "" for no hash. A hand-typed
+// or truncated escape ("#C1%2") is taken as written rather than thrown.
+function symFromHash(hash) {
+  const h = String(hash || "").replace(/^#/, "");
+  try { return decodeURIComponent(h).trim(); } catch { return h.trim(); }
+}
+
 // One gene's story as lines of text, oldest first.
 function story(g) {
   const out = [`approved ${g.a || "on an unknown date"}${g.p.length ? ` as ${g.p.join(", then ")}` : ` as ${g.s}`}`];
@@ -176,7 +183,8 @@ function chromHTML(rows) {
 
 function geneHTML(g) {
   const link = `https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/${esc(g.id)}`;
-  return `<div><span class="sym">${esc(g.s)}</span> · ${esc(g.n)} · ${esc(g.loc)} · <a href="${link}">HGNC</a></div>`
+  return `<div><span class="sym">${esc(g.s)}</span> · ${esc(g.n)} · ${esc(g.loc)} · <a href="${link}">HGNC</a>`
+    + ` · <a href="#${esc(encodeURIComponent(g.s))}" class="share">link to this gene</a></div>`
     + `<ul class="hist">${story(g).map(l => `<li>${esc(l)}</li>`).join("")}</ul>`;
 }
 
@@ -188,7 +196,7 @@ async function main() {
   document.getElementById("asof").textContent = site.asof;
   draw(site);
   document.getElementById("recent").innerHTML = site.recent.map(g =>
-    `<li><code>${esc(g.p.join(" → "))}</code> → <code><b>${esc(g.s)}</b></code>, ${esc(g.n)} <span class="muted">${esc(g.c)}</span></li>`).join("");
+    `<li><code>${esc(g.p.join(" → "))}</code> → <a href="#${esc(encodeURIComponent(g.s))}"><code><b>${esc(g.s)}</b></code></a>, ${esc(g.n)} <span class="muted">${esc(g.c)}</span></li>`).join("");
   const ex = site.excel;
   document.getElementById("excel-s").textContent = `Spreadsheets read SEPT1 as 1 September, so HGNC renamed ${ex.renamed.length} human genes `
     + `whose symbols looked like dates (most in 2020). ${ex.still.length ? `Still at risk: ${ex.still.join(", ")}.` : "No current symbol still looks like a date."}`;
@@ -206,7 +214,20 @@ async function main() {
         + (hits.length ? `<p class="muted">Also starting with ${T}:</p>` + hitsHTML(hits, 6) : "")
       : hits.length ? `<p class="muted">${fmt(hits.length)} gene${hits.length > 1 ? "s" : ""} start${hits.length > 1 ? "" : "s"} with ${T}:</p>` + hitsHTML(hits, HITS)
       : `<span class="muted">${T} was never a placeholder-named protein-coding gene.</span>`;
+    // the address names the gene on screen, so it can be bookmarked, shared or reloaded;
+    // replaceState, so typing a symbol does not stack one Back step per keystroke
+    const want = g ? "#" + encodeURIComponent(g.s) : "";
+    if (location.hash !== want) history.replaceState(null, "", location.pathname + location.search + want);
   };
+  // open the gene a link names (…/still-unnamed/#C12orf54), on arrival and on a hash link
+  const fromHash = async () => {
+    const s = symFromHash(location.hash);
+    if (!s || (lookup(await load(), s) || {}).s === q.value.trim()) return;
+    q.value = s;
+    await run();
+    q.scrollIntoView({ block: "center" });
+  };
+  window.addEventListener("hashchange", fromHash);
   out.addEventListener("click", e => {
     const b = e.target.closest("button[data-s]");
     if (b) { q.value = b.dataset.s; run(); }
@@ -236,7 +257,8 @@ async function main() {
   });
   document.getElementById("f").addEventListener("submit", e => { e.preventDefault(); run(); });
   q.addEventListener("input", () => { if (q.value.trim().length >= 3) run(); else out.innerHTML = ""; });
+  await fromHash();
 }
 
-if (typeof module !== "undefined") module.exports = { stack, lookup, prefixed, story, chromOf, byChrom, ROOTS };
+if (typeof module !== "undefined") module.exports = { stack, lookup, prefixed, story, chromOf, byChrom, symFromHash, ROOTS };
 else main();
