@@ -20,7 +20,7 @@ function peakYear(renamed) {
   const n = {};
   for (const g of renamed) if (g.c) n[g.c.slice(0, 4)] = (n[g.c.slice(0, 4)] || 0) + 1;
   const [y, k] = Object.entries(n).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0] || [];
-  return y ? ` (${k} of them in ${y})` : "";
+  return !y ? "" : k === renamed.length ? ` (all in ${y})` : ` (${k} of them in ${y})`;
 }
 
 // The symbol a user typed, matched against a current or previous symbol.
@@ -207,7 +207,11 @@ async function main() {
     `<li><code>${esc(g.p.join(" → "))}</code> → <a href="#${esc(encodeURIComponent(g.s))}"><code><b>${esc(g.s)}</b></code></a>, ${esc(g.n)} <span class="muted">${esc(g.c)}</span></li>`).join("");
   const ex = site.excel;
   document.getElementById("excel-s").textContent = `Spreadsheets read SEPT1 as 1 September, so HGNC renamed ${ex.renamed.length} human genes `
-    + `whose symbols looked like dates${peakYear(ex.renamed)}. ${ex.still.length ? `Still at risk: ${ex.still.join(", ")}.` : "No current symbol still looks like a date."}`;
+    + `whose symbols looked like dates${peakYear(ex.renamed)}. `
+    // a date-like old symbol on a gene that was never renamed (FEB3 on SCN1A) is a merged locus, not an Excel rename
+    + ((ex.merged || []).length ? `Not counted: ${ex.merged.map(g => `${g.p.join(", ")}, an older locus symbol that turned out to be ${g.s}`).join("; ")}`
+      + ` (${ex.merged.length > 1 ? "those genes were" : `${ex.merged[0].s} itself was`} never renamed). ` : "")
+    + `${ex.still.length ? `Still at risk: ${ex.still.join(", ")}.` : "No current symbol still looks like a date."}`;
   document.getElementById("excel").innerHTML = ex.renamed.map(g =>
     `<li><code>${esc(g.p.join(", "))}</code> → <code><b>${esc(g.s)}</b></code> <span class="muted">${esc(g.c)}</span></li>`).join("");
 
