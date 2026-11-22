@@ -168,6 +168,13 @@ function draw(site) {
     + "</tbody></table>";
 }
 
+// "35 named so far in 2026, of the 420 on 1 January; no new placeholder given."
+function yearLine(yr) {
+  const n = yr.named.length, k = yr.new.length;
+  return `${n ? fmt(n) : "None"} named so far in ${yr.y}, of the ${fmt(yr.start)} on 1 January; `
+    + (k ? `${fmt(k)} new placeholder${k > 1 ? "s" : ""} given (${yr.new.join(", ")}).` : "no new placeholder given.");
+}
+
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 
 const HITS = 12;
@@ -200,11 +207,25 @@ async function main() {
   const site = await (await fetch("data/site.json")).json();
   document.getElementById("still").textContent = fmt(site.still);
   document.getElementById("still-s").textContent = `of ${fmt(site.protein_coding)} human protein-coding genes are still known only by a placeholder. `
-    + `${fmt(site.ever - site.still)} more were placeholders once and have since been named.`;
+    + `${fmt(site.ever - site.still)} more were placeholders once and have since been named.`
+    + (site.year ? " " + yearLine(site.year) : "");
   document.getElementById("asof").textContent = site.asof;
   draw(site);
-  document.getElementById("recent").innerHTML = site.recent.map(g =>
-    `<li><code>${esc(g.p.join(" → "))}</code> → <a href="#${esc(encodeURIComponent(g.s))}"><code><b>${esc(g.s)}</b></code></a>, ${esc(g.n)} <span class="muted">${esc(g.c)}</span></li>`).join("");
+  // this year's renames, all of them (newest 12 shown, the rest one tap away); before the
+  // year's first rename, the 12 most recent ever
+  const yr = site.year, mine = yr && yr.named.length ? yr.named : null, named = mine || site.recent;
+  const li = g => `<li><code>${esc(g.p.join(" → "))}</code> → <a href="#${esc(encodeURIComponent(g.s))}"><code><b>${esc(g.s)}</b></code></a>, ${esc(g.n)} <span class="muted">${esc(g.c)}</span></li>`;
+  if (mine) {
+    document.getElementById("recent-h").textContent = `Named in ${yr.y}`;
+    document.getElementById("recent-s").textContent = `Every gene that was a placeholder on 1 January ${yr.y} and has a real name now, newest first.`;
+  }
+  document.getElementById("recent").innerHTML = named.slice(0, HITS).map(li).join("");
+  if (named.length > HITS) {
+    const more = document.getElementById("recent-more");
+    more.hidden = false;
+    more.querySelector("summary").textContent = `Show the other ${fmt(named.length - HITS)}`;
+    document.getElementById("recent-rest").innerHTML = named.slice(HITS).map(li).join("");
+  }
   const ex = site.excel;
   document.getElementById("excel-s").textContent = `Spreadsheets read SEPT1 as 1 September, so HGNC renamed ${ex.renamed.length} human genes `
     + `whose symbols looked like dates${peakYear(ex.renamed)}. `
@@ -272,5 +293,5 @@ async function main() {
   await fromHash();
 }
 
-if (typeof module !== "undefined") module.exports = { peakYear, stack, lookup, prefixed, story, chromOf, byChrom, symFromHash, ROOTS };
+if (typeof module !== "undefined") module.exports = { peakYear, yearLine, stack, lookup, prefixed, story, chromOf, byChrom, symFromHash, ROOTS };
 else main();
