@@ -15,6 +15,15 @@ function stack(series) {
   }));
 }
 
+// Where the chart starts: the last point before the total first reaches 1% of its peak, so the
+// years when placeholders were a handful (never more than 7 before 1998) don't take a third of a
+// phone's chart width. The table still lists every year.
+function chartStart(series) {
+  const peak = Math.max(...series.map(p => p.total));
+  const first = series.findIndex(p => p.total >= peak / 100);
+  return Math.max(0, first - 1);
+}
+
 // "(25 of them in 2019)": the busiest rename year among the dated Excel renames, from the data.
 function peakYear(renamed) {
   const n = {};
@@ -101,19 +110,20 @@ function draw(site) {
   const box = document.getElementById("chart");
   const W = Math.max(300, Math.round(box.clientWidth)), narrow = W < 560;
   const H = narrow ? 240 : 320, m = { l: 40, r: narrow ? 92 : 120, t: 10, b: 26 };
-  const series = site.series, layers = stack(series);
+  const i0 = chartStart(site.series), series = site.series.slice(i0), layers = stack(series);
   const x0 = yearOf(series[0].date), x1 = yearOf(series[series.length - 1].date);
   const ymax = Math.ceil(Math.max(...series.map(p => p.total), ...site.anchors.map(a => a.count)) / 200) * 200;
   const X = x => m.l + (x - x0) / (x1 - x0) * (W - m.l - m.r);
   const Y = y => H - m.b - y / ymax * (H - m.t - m.b);
   const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, role: "img",
-    "aria-label": `Stacked area chart of placeholder gene symbols, ${series[0].date.slice(0, 4)} to today` });
+    "aria-label": `Stacked area chart of placeholder gene symbols, ${x0} to today` });
   box.prepend(svg);
   for (let y = 0; y <= ymax; y += 200) {
     svgEl("line", { x1: m.l, x2: W - m.r, y1: Y(y), y2: Y(y), stroke: "var(--grid)" }, svg);
     svgEl("text", { x: m.l - 6, y: Y(y) + 4, "text-anchor": "end" }, svg).textContent = fmt(y);
   }
-  for (let yr = 1990; yr <= x1; yr += narrow ? 10 : 5) {
+  const step = narrow ? 10 : 5;
+  for (let yr = Math.ceil(x0 / step) * step; yr <= x1; yr += step) {
     svgEl("text", { x: X(yr), y: H - 8, "text-anchor": "middle" }, svg).textContent = yr;
   }
   layers.forEach((pts, i) => {
@@ -160,11 +170,14 @@ function draw(site) {
 
   document.getElementById("legend").innerHTML = ROOTS.map(r => `<span><i style="background:${r.color}"></i>${r.label}</span>`).join("")
     + `<span><i class="anc"></i>HGNC's own published count</span>`;
-  document.getElementById("anchor-note").innerHTML = "Checked against HGNC's own counts: "
+  const before = site.series.slice(0, i0 + 1);
+  document.getElementById("anchor-note").innerHTML = (i0 ? `Starts ${x0}: before then there were never more than `
+    + `${fmt(Math.max(...before.map(p => p.total)))} placeholders; the table has every year. ` : "")
+    + "Checked against HGNC's own counts: "
     + site.anchors.map(a => `${a.date.slice(0, 7)}: rebuilt ${fmt(a.rebuilt)}, HGNC <a href="${a.src}">${a.approx ? "about " : ""}${fmt(a.count)}</a>`).join("; ") + ".";
   document.getElementById("table").innerHTML = "<table><thead><tr><th>As of</th>"
     + ROOTS.map(r => `<th>${r.key === "orf" ? "C#orf#" : r.key + "#"}</th>`).join("") + "<th>Total</th><th>Approved genes</th></tr></thead><tbody>"
-    + series.map(p => `<tr><td>${p.date}</td>${ROOTS.map(r => `<td>${fmt(p[r.key])}</td>`).join("")}<td>${fmt(p.total)}</td><td>${fmt(p.approved)}</td></tr>`).join("")
+    + site.series.map(p => `<tr><td>${p.date}</td>${ROOTS.map(r => `<td>${fmt(p[r.key])}</td>`).join("")}<td>${fmt(p.total)}</td><td>${fmt(p.approved)}</td></tr>`).join("")
     + "</tbody></table>";
 }
 
@@ -293,5 +306,5 @@ async function main() {
   await fromHash();
 }
 
-if (typeof module !== "undefined") module.exports = { peakYear, yearLine, stack, lookup, prefixed, story, chromOf, byChrom, symFromHash, ROOTS };
+if (typeof module !== "undefined") module.exports = { chartStart, peakYear, yearLine, stack, lookup, prefixed, story, chromOf, byChrom, symFromHash, ROOTS };
 else main();
